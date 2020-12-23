@@ -4,7 +4,7 @@
   package="org.xbmc.kore">
   
   <!-- For espresso testing purposes, this is removed in live builds, but not in dev builds -->
-  <uses-permission android:name="android.permission.SET_ANIMATION_SCALE" />
+  <!-- uses-permission android:name="android.permission.SET_ANIMATION_SCALE" / -->
   <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
 
 </manifest>

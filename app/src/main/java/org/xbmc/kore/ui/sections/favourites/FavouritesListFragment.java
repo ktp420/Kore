@@ -38,10 +38,13 @@ import org.xbmc.kore.host.HostManager;
 import org.xbmc.kore.jsonrpc.ApiCallback;
 import org.xbmc.kore.jsonrpc.ApiList;
 import org.xbmc.kore.jsonrpc.method.Favourites;
+import org.xbmc.kore.jsonrpc.method.Files;
 import org.xbmc.kore.jsonrpc.method.GUI;
 import org.xbmc.kore.jsonrpc.type.FavouriteType;
 import org.xbmc.kore.jsonrpc.type.PlaylistType;
 import org.xbmc.kore.ui.AbstractListFragment;
+import org.xbmc.kore.ui.BaseMediaActivity;
+import org.xbmc.kore.ui.sections.file.MediaFileListFragment;
 import org.xbmc.kore.ui.viewgroups.RecyclerViewEmptyViewSupport;
 import org.xbmc.kore.utils.LogUtils;
 import org.xbmc.kore.utils.MediaPlayerUtils;
@@ -87,9 +90,28 @@ public class FavouritesListFragment extends AbstractListFragment implements Swip
                 }
                 if (detailsFavourite.type.equals(FavouriteType.FavouriteTypeEnum.WINDOW)
                         && !TextUtils.isEmpty(detailsFavourite.window)) {
-                    GUI.ActivateWindow activateWindow = new GUI.ActivateWindow(detailsFavourite.window,
-                            detailsFavourite.windowParameter);
-                    hostManager.getConnection().execute(activateWindow, genericApiCallback, callbackHandler);
+                    Context activity = getActivity();
+                    if (activity instanceof BaseMediaActivity
+                            && !TextUtils.isEmpty(detailsFavourite.windowParameter)
+                            && detailsFavourite.windowParameter.startsWith("plugin://")) {
+                        Bundle args = new Bundle();
+                        args.putParcelable(MediaFileListFragment.ROOT_PATH,
+                                new MediaFileListFragment.FileLocation(
+                                    detailsFavourite.title,
+                                    detailsFavourite.windowParameter,
+                                    true));
+                        args.putString(MediaFileListFragment.MEDIA_TYPE, Files.Media.FILES);
+			MediaFileListFragment frag = new MediaFileListFragment();
+			frag.setArguments(args);
+			((BaseMediaActivity) activity).getSupportFragmentManager().beginTransaction()
+				.replace(R.id.fragment_container, frag, detailsFavourite.title)
+				.addToBackStack(null)
+				.commit();
+                    } else {
+                        GUI.ActivateWindow activateWindow = new GUI.ActivateWindow(detailsFavourite.window,
+                                detailsFavourite.windowParameter);
+                        hostManager.getConnection().execute(activateWindow, genericApiCallback, callbackHandler);
+                    }
                 } else if (detailsFavourite.type.equals(FavouriteType.FavouriteTypeEnum.MEDIA)
                         && !TextUtils.isEmpty(detailsFavourite.path)) {
                     final PlaylistType.Item playlistItem = new PlaylistType.Item();
