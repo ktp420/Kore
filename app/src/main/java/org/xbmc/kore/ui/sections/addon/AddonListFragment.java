@@ -37,7 +37,6 @@ import androidx.recyclerview.widget.RecyclerView;
 import org.xbmc.kore.R;
 import org.xbmc.kore.Settings;
 import org.xbmc.kore.host.HostManager;
-import org.xbmc.kore.jsonrpc.ApiCallback;
 import org.xbmc.kore.jsonrpc.method.Addons;
 import org.xbmc.kore.jsonrpc.type.AddonType;
 import org.xbmc.kore.ui.AbstractInfoFragment;

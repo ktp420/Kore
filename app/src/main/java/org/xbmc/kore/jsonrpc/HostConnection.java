@@ -445,7 +445,11 @@ public class HostConnection {
                 handler.post(new Runnable() {
                     @Override
                     public void run() {
-                        apiCallback.onSuccess(result);
+                        try {
+                            apiCallback.onSuccess(result);
+                        } finally {
+                            apiCallback.onPostExecute();
+                        }
                     }
                 });
             }
@@ -454,7 +458,11 @@ public class HostConnection {
                 handler.post(new Runnable() {
                     @Override
                     public void run() {
-                        apiCallback.onError(errorCode, message);
+                        try {
+                            apiCallback.onError(errorCode, message);
+                        } finally {
+                            apiCallback.onPostExecute();
+                        }
                     }
                 });
             }
@@ -511,8 +519,12 @@ public class HostConnection {
                     handler.post(new Runnable() {
                         @Override
                         public void run() {
-                            callback.onError(ApiException.API_METHOD_WITH_SAME_ID_ALREADY_EXECUTING,
+                            try {
+                                callback.onError(ApiException.API_METHOD_WITH_SAME_ID_ALREADY_EXECUTING,
                                              "A method with the same Id is already executing");
+                            } finally {
+                                callback.onPostExecute();
+                            }
                         }
                     });
                 }
@@ -543,7 +555,11 @@ public class HostConnection {
                 postOrRunNow(handler, new Runnable() {
                     @Override
                     public void run() {
-                        callback.onSuccess(result);
+                        try {
+                            callback.onSuccess(result);
+                        } finally {
+                            callback.onPostExecute();
+                        }
                     }
                 });
             }
@@ -553,7 +569,11 @@ public class HostConnection {
                 postOrRunNow(handler, new Runnable() {
                     @Override
                     public void run() {
-                        callback.onError(e.getCode(), e.getMessage());
+                        try {
+                            callback.onError(e.getCode(), e.getMessage());
+                        } finally {
+                            callback.onPostExecute();
+                        }
                     }
                 });
             }
@@ -1057,7 +1077,11 @@ public class HostConnection {
                             postOrRunNow(methodCallInfo.handler, new Runnable() {
                                 @Override
                                 public void run() {
-                                    callback.onSuccess(result);
+                                    try {
+                                        callback.onSuccess(result);
+                                    } finally {
+                                        callback.onPostExecute();
+                                    }
                                 }
                             });
                         }
@@ -1087,7 +1111,11 @@ public class HostConnection {
                         postOrRunNow(methodCallInfo.handler, new Runnable() {
                             @Override
                             public void run() {
-                                callback.onError(error.getCode(), error.getMessage());
+                                try {
+                                    callback.onError(error.getCode(), error.getMessage());
+                                } finally {
+                                    callback.onPostExecute();
+                                }
                             }
                         });
                     }
@@ -1104,7 +1132,11 @@ public class HostConnection {
                         postOrRunNow(methodCallInfo.handler, new Runnable() {
                             @Override
                             public void run() {
-                                callback.onError(error.getCode(), error.getMessage());
+                                try {
+                                    callback.onError(error.getCode(), error.getMessage());
+                                } finally {
+                                    callback.onPostExecute();
+                                }
                             }
                         });
                     }

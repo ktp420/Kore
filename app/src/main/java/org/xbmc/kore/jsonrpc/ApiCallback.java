@@ -40,4 +40,18 @@ public interface ApiCallback<T> {
      * @param description Error description
      */
 	public abstract void onError(int errorCode, String description);
+
+    /**
+     * Runs on the UI thread before executing the method on XBMC
+     * This can be used to init any thing, such as show loading.
+     * Default implemention is to noop.
+     */
+    default public void onPreExecute() {}
+
+    /**
+     * Runs on the UI thread after #onSuccess or #onError methods are called.
+     * This can be used to finalize any thing, such as cleanup/hide loading.
+     * Default implemention is to noop.
+     */
+    default public void onPostExecute() {}
 }

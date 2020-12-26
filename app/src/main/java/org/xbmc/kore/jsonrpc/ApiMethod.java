@@ -223,22 +223,30 @@ public abstract class ApiMethod<T> {
 //		execute(hostConnection, callback, new Handler(Looper.myLooper()));
 //	}
 
-	/**
-	 * Calls the method represented by this object on the server.
-	 * This call is always asynchronous. The results will be posted, through the callback parameter,
-	 * on the specified handler.
-	 *
-	 * @param hostConnection Host connection on which to call the method
-	 * @param callback Callbacks to post the response to
-	 * @param handler Handler to invoke callbacks on
-	 */
-	public void execute(HostConnection hostConnection, ApiCallback<T> callback, Handler handler) {
+    /**
+     * Calls the method represented by this object on the server.
+     * This call is always asynchronous. The results will be posted, through the callback parameter,
+     * on the specified handler.
+     *
+     * @param hostConnection Host connection on which to call the method
+     * @param callback Callbacks to post the response to
+     * @param handler Handler to invoke callbacks on
+     */
+    public void execute(HostConnection hostConnection, ApiCallback<T> callback, Handler handler) {
+        if (callback == null) {
+            callback = getDefaultActionCallback();
+        }
+        callback.onPreExecute();
         if (hostConnection != null) {
             hostConnection.execute(this, callback, handler);
         } else {
-            callback.onError(ApiException.API_NO_CONNECTION, "No connection specified.");
+            try {
+               callback.onError(ApiException.API_NO_CONNECTION, "No connection specified.");
+            } finally {
+                callback.onPostExecute();
+            }
         }
-	}
+    }
 
 	/**
 	 * Returns the current method name

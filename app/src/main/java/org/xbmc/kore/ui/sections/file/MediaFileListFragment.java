@@ -23,6 +23,7 @@ import android.os.Handler;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.net.Uri;
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
@@ -36,7 +37,6 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import org.xbmc.kore.R;
 import org.xbmc.kore.host.HostManager;
-import org.xbmc.kore.jsonrpc.ApiCallback;
 import org.xbmc.kore.jsonrpc.HostConnection;
 import org.xbmc.kore.jsonrpc.method.Files;
 import org.xbmc.kore.jsonrpc.method.Player;
@@ -166,6 +166,7 @@ public class MediaFileListFragment extends AbstractListFragment {
             setUserVisibleHint(getUserVisibleHint() || !args.getBoolean(DELAY_LOAD, false));
         }
         else {
+	    swipeRefreshLayout.setRefreshing(true);
             browseSources();
         }
         return root;
@@ -175,6 +176,7 @@ public class MediaFileListFragment extends AbstractListFragment {
     public void setUserVisibleHint (boolean isVisibleToUser) {
         super.setUserVisibleHint(isVisibleToUser);
         if (isVisibleToUser && loadOnVisible != null) {
+	    swipeRefreshLayout.setRefreshing(true);
             FileLocation rootPath = loadOnVisible;
             loadOnVisible = null;
             browseRootAlready = true;
@@ -183,7 +185,10 @@ public class MediaFileListFragment extends AbstractListFragment {
     }
 
     void handleFileSelect(FileLocation f) {
+        if (f.isDirectory && show_plugin(f)) return;
+
         // if selection is a directory, browse the the level below
+        swipeRefreshLayout.setRefreshing(true);
         if (f.isDirectory) {
             // a directory - store the path of this directory so that we can reverse travel if
             // we want to
@@ -295,8 +300,8 @@ public class MediaFileListFragment extends AbstractListFragment {
                 //ListType.FieldsFiles.MUSICBRAINZALBUMARTISTID, ListType.FieldsFiles.PLAYCOUNT,
                 //ListType.FieldsFiles.FANART,
                 //ListType.FieldsFiles.DIRECTOR, ListType.FieldsFiles.TRAILER,
-                ListType.FieldsFiles.TAGLINE,
-                //ListType.FieldsFiles.PLOT, ListType.FieldsFiles.PLOTOUTLINE, ListType.FieldsFiles.ORIGINALTITLE,
+                ListType.FieldsFiles.TAGLINE, ListType.FieldsFiles.PLOT,
+                //ListType.FieldsFiles.PLOTOUTLINE, ListType.FieldsFiles.ORIGINALTITLE,
                 //ListType.FieldsFiles.LASTPLAYED, ListType.FieldsFiles.WRITER, ListType.FieldsFiles.STUDIO,
                 //ListType.FieldsFiles.MPAA, ListType.FieldsFiles.CAST, ListType.FieldsFiles.COUNTRY,
                 //ListType.FieldsFiles.IMDBNUMBER, ListType.FieldsFiles.PREMIERED,
@@ -541,11 +546,6 @@ public class MediaFileListFragment extends AbstractListFragment {
         return p;
     }
 
-    @Override
-    public void onRefresh() {
-
-    }
-
     private class MediaFileListAdapter extends RecyclerView.Adapter {
 
         Context ctx;
@@ -563,33 +563,47 @@ public class MediaFileListFragment extends AbstractListFragment {
                     final FileLocation loc = fileLocationItems.get(position);
                     if (!loc.isDirectory) {
                         final PopupMenu popupMenu = new PopupMenu(getActivity(), v);
-                        popupMenu.getMenuInflater().inflate(R.menu.filelist_item, popupMenu.getMenu());
+                        popupMenu.getMenuInflater().inflate(R.menu.media_filelist_item, popupMenu.getMenu());
+                        if (loc.cm != null) {
+                            for (ListType.MenuItem i : loc.cm) {
+                                if (!TextUtils.isEmpty(i.title) && !TextUtils.isEmpty(i.path)) {
+                                    popupMenu.getMenu().add(i.title);
+                                }
+                            }
+                        }
                         popupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
                             @Override
                             public boolean onMenuItemClick(MenuItem item) {
 
                                 switch (item.getItemId()) {
-                                    case R.id.action_queue_item:
-                                        queueMediaFile(loc.file);
-                                        return true;
+                                    // case R.id.action_queue_item:
+                                    //     queueMediaFile(loc.file);
+                                    //     return true;
                                     case R.id.action_play_item:
                                         playMediaFile(loc.file);
                                         return true;
                                     case R.id.action_play_local_item:
                                         playMediaFileLocally(loc.file);
                                         return true;
-                                    case R.id.action_play_from_this_item:
-                                        mediaQueueFileLocation.clear();
-                                        FileLocation fl;
-                                        // start playing the selected one, then queue the rest
-                                        for (int i = position + 1; i < fileLocationItems.size(); i++) {
-                                            fl = fileLocationItems.get(i);
-                                            if (!fl.isDirectory) {
-                                                mediaQueueFileLocation.add(fl);
+                                    // case R.id.action_play_from_this_item:
+                                    //     mediaQueueFileLocation.clear();
+                                    //     FileLocation fl;
+                                    //     // start playing the selected one, then queue the rest
+                                    //     for (int i = position + 1; i < fileLocationItems.size(); i++) {
+                                    //         fl = fileLocationItems.get(i);
+                                    //         if (!fl.isDirectory) {
+                                    //             mediaQueueFileLocation.add(fl);
+                                    //         }
+                                    //     }
+                                    //     playMediaFile(loc.file);
+                                    //     return true;
+                                    default:
+                                        for (ListType.MenuItem i : loc.cm) {
+                                            if (i.title == item.getTitle()) {
+                                                handleFileSelect(new FileLocation(i.title, i.path, true));
+                                                return true;
                                             }
                                         }
-                                        playMediaFile(loc.file);
-                                        return true;
                                 }
                                 return false;
                             }
@@ -721,6 +735,7 @@ public class MediaFileListFragment extends AbstractListFragment {
         public final String details;
         public final String sizeDuration;
         public final String artUrl;
+        public final List<ListType.MenuItem> cm;
 
         public final String file;
         public final boolean isDirectory;
@@ -732,11 +747,11 @@ public class MediaFileListFragment extends AbstractListFragment {
         public void setRootDir(boolean root) { this.isRoot = root; }
 
         public FileLocation(String title, String path, boolean isDir) {
-            this(title, path, isDir, null, null, null);
+            this(title, path, isDir, null, null, null, new ArrayList<ListType.MenuItem>(0));
         }
 
         static final Pattern noParent = Pattern.compile("plugin://[^/]*/?");
-        public FileLocation(String title, String path, boolean isDir, String details, String sizeDuration, String artUrl) {
+        public FileLocation(String title, String path, boolean isDir, String details, String sizeDuration, String artUrl, List<ListType.MenuItem> cm) {
             this.title = title;
             this.file = path;
             this.isDirectory = isDir;
@@ -747,6 +762,7 @@ public class MediaFileListFragment extends AbstractListFragment {
             this.details = details;
             this.sizeDuration = sizeDuration;
             this.artUrl = artUrl;
+            this.cm = cm;
         }
 
         public static FileLocation newInstanceFromItemFile(Context context, ListType.ItemFile itemFile) {
@@ -764,7 +780,8 @@ public class MediaFileListFragment extends AbstractListFragment {
                     break;
                 case ListType.ItemBase.TYPE_EPISODE:
                     title = itemFile.title;
-                    details = String.format(context.getString(R.string.season_episode), itemFile.season, itemFile.episode);
+                    details = String.format(context.getString(R.string.season_episode), itemFile.season, itemFile.episode)
+			    + '\n' + itemFile.tagline;
                     sizeDuration = (itemFile.size > 0) && (itemFile.runtime > 0) ?
                                    UIUtils.formatFileSize(itemFile.size) + " | " + UIUtils.formatTime(itemFile.runtime) :
                                    (itemFile.size > 0) ? UIUtils.formatFileSize(itemFile.size) :
@@ -801,7 +818,7 @@ public class MediaFileListFragment extends AbstractListFragment {
                 case ListType.ItemBase.TYPE_PICTURE:
                 default:
                     title = itemFile.label;
-                    details = null;
+                    details = itemFile.tagline;
                     artUrl = itemFile.thumbnail;
                     sizeDuration = UIUtils.formatFileSize(itemFile.size);
                     break;
@@ -809,7 +826,7 @@ public class MediaFileListFragment extends AbstractListFragment {
 
             return new FileLocation(title, itemFile.file,
                                     itemFile.filetype.equalsIgnoreCase(ListType.ItemFile.FILETYPE_DIRECTORY),
-                                    details, sizeDuration, artUrl);
+                                    details, sizeDuration, artUrl, itemFile.context_menu);
         }
 
         private FileLocation(Parcel in) {
@@ -822,6 +839,8 @@ public class MediaFileListFragment extends AbstractListFragment {
             this.details = in.readString();
             this.sizeDuration = in.readString();
             this.artUrl = in.readString();
+            this.cm = new ArrayList<ListType.MenuItem>();
+            in.readList(this.cm, ListType.MenuItem.class.getClassLoader());
         }
 
         public int describeContents() {
@@ -838,6 +857,8 @@ public class MediaFileListFragment extends AbstractListFragment {
             out.writeString(details);
             out.writeString(sizeDuration);
             out.writeString(artUrl);
+
+            out.writeList(cm);
         }
 
         public static final Parcelable.Creator<FileLocation> CREATOR = new Parcelable.Creator<FileLocation>() {

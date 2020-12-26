@@ -28,8 +28,10 @@ import org.xbmc.kore.R;
 import org.xbmc.kore.Settings;
 import org.xbmc.kore.host.HostManager;
 import org.xbmc.kore.jsonrpc.ApiCallback;
+import org.xbmc.kore.jsonrpc.HostConnection;
 import org.xbmc.kore.jsonrpc.method.Player;
 import org.xbmc.kore.jsonrpc.method.Playlist;
+import org.xbmc.kore.jsonrpc.type.PlayerType;
 import org.xbmc.kore.jsonrpc.type.PlaylistType;
 import org.xbmc.kore.ui.sections.remote.RemoteActivity;
 
@@ -54,6 +56,8 @@ public class MediaPlayerUtils {
             @Override
             public void onSuccess(String result) {
                 if (!fragment.isAdded()) return;
+                // HostConnection connection = hostManager.getConnection();
+                // startPlaylistIfNoActivePlayers(connection, fragment, callbackHandler);
                 boolean switchToRemote = PreferenceManager
                         .getDefaultSharedPreferences(context)
                         .getBoolean(Settings.KEY_PREF_SWITCH_TO_REMOTE_AFTER_MEDIA_START,
@@ -77,6 +81,49 @@ public class MediaPlayerUtils {
             }
         }, callbackHandler);
     }
+
+    // /**
+    //  * Starts a playlist if no active players are playing
+    //  * @param connection Host connection
+    //  * @param playlistId PlaylistId to start
+    //  * @param callbackHandler Handler on which to post method callbacks
+    //  */
+    // private static void startPlaylistIfNoActivePlayers(final HostConnection connection,
+    //                                                    final Fragment fragment,
+    //                                                    final Handler callbackHandler) {
+    //     Player.GetActivePlayers action = new Player.GetActivePlayers();
+    //     final Context context = fragment.getActivity();
+    //     action.execute(connection, new ApiCallback<ArrayList<PlayerType.GetActivePlayersReturnType>>() {
+    //         @Override
+    //         public void onSuccess(ArrayList<PlayerType.GetActivePlayersReturnType> result ) {
+    //             // find out if any player is running. If it is not, start one
+    //             if (result.isEmpty()) {
+    //                 Player.Open action = new Player.Open(Player.Open.TYPE_PLAYLIST, PlaylistType.VIDEO_PLAYLISTID);
+    //                 action.execute(connection, new ApiCallback<String>() {
+    //                     @Override
+    //                     public void onSuccess(String result) { }
+
+    //                     @Override
+    //                     public void onError(int errorCode, String description) {
+    //                         if (!fragment.isAdded()) return;
+    //                         Toast.makeText(fragment.getActivity(),
+    //                                        String.format(context.getString(R.string.error_play_media_file), description),
+    //                                        Toast.LENGTH_SHORT).show();
+    //                     }
+    //                 }, callbackHandler);
+    //             }
+    //         }
+
+    //         @Override
+    //         public void onError(int errorCode, String description) {
+    //             if (!fragment.isAdded()) return;
+    //             Toast.makeText(fragment.getActivity(),
+    //                            String.format(context.getString(R.string.error_get_active_player), description),
+    //                            Toast.LENGTH_SHORT).show();
+    //         }
+    //     }, callbackHandler);
+
+    // }
 
     /**
      * Queues item to current playlist

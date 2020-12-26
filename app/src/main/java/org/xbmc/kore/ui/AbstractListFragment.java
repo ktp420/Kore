@@ -20,6 +20,7 @@ import android.annotation.TargetApi;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -35,6 +36,8 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import org.xbmc.kore.R;
 import org.xbmc.kore.Settings;
+import org.xbmc.kore.jsonrpc.method.Files;
+import org.xbmc.kore.ui.sections.file.MediaFileListFragment;
 import org.xbmc.kore.ui.viewgroups.RecyclerViewEmptyViewSupport;
 import org.xbmc.kore.utils.LogUtils;
 
@@ -42,8 +45,7 @@ import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.Unbinder;
 
-public abstract class AbstractListFragment extends Fragment implements
-															SwipeRefreshLayout.OnRefreshListener {
+public abstract class AbstractListFragment extends Fragment implements SwipeRefreshLayout.OnRefreshListener {
     private static final String TAG = LogUtils.makeLogTag(AbstractListFragment.class);
 	private RecyclerView.Adapter adapter;
 
@@ -145,6 +147,11 @@ public abstract class AbstractListFragment extends Fragment implements
 		adapter.notifyDataSetChanged(); //force gridView to redraw
 	}
 
+    @Override
+    public void onRefresh() {
+        hideRefreshAnimation();
+    }
+ 
 	public void hideRefreshAnimation() {
 		swipeRefreshLayout.setRefreshing(false);
 	}
@@ -153,6 +160,28 @@ public abstract class AbstractListFragment extends Fragment implements
 		return adapter;
 	}
 
+    protected boolean show_plugin(String title, String path) {
+        return show_plugin(new MediaFileListFragment.FileLocation(
+                    title, path, true));
+    }
+
+    protected boolean show_plugin(MediaFileListFragment.FileLocation f) {
+        final String path = (f == null) ? null : f.file;
+        if (TextUtils.isEmpty(path) || !path.startsWith("plugin://")) {
+            return false;
+        }
+        Bundle args = new Bundle();
+        args.putParcelable(MediaFileListFragment.ROOT_PATH, f);
+        args.putString(MediaFileListFragment.MEDIA_TYPE, Files.Media.VIDEO);
+		MediaFileListFragment frag = new MediaFileListFragment();
+		frag.setArguments(args);
+		getActivity().getSupportFragmentManager().beginTransaction()
+			.replace(R.id.fragment_container, frag, f.title)
+			.addToBackStack(null)
+			.commit();
+        return true;
+    }
+
 	/**
 	 * Returns the view that is displayed when the gridview has no items to show
 	 * @return
@@ -160,4 +189,14 @@ public abstract class AbstractListFragment extends Fragment implements
 	public TextView getEmptyView() {
 		return emptyView;
 	}
+
+    protected abstract class ApiCallback<T> implements org.xbmc.kore.jsonrpc.ApiCallback<T> {
+        public void onPostExecute() {
+            hideRefreshAnimation();
+        }
+
+        public void onPreExecute() {
+            swipeRefreshLayout.setRefreshing(true);
+        }
+    }
 }

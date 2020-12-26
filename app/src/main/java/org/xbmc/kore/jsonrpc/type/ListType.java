@@ -17,6 +17,7 @@ package org.xbmc.kore.jsonrpc.type;
 
 import android.os.Parcel;
 import android.os.Parcelable;
+import android.text.TextUtils;
 
 import androidx.annotation.Nullable;
 
@@ -27,6 +28,8 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.xbmc.kore.host.actions.GetPlaylist;
 import org.xbmc.kore.utils.JsonUtils;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -129,6 +132,7 @@ public class ListType {
         public final List<String> style;
         public final List<String> tag;
         public final String tagline;
+        public final List<MenuItem> context_menu;
         public final List<String> theme;
         public final int top250;
         public final int track;
@@ -275,7 +279,12 @@ public class ListType {
             studio = JsonUtils.stringListFromJsonNode(node, STUDIO);
             style = JsonUtils.stringListFromJsonNode(node, STYLE);
             tag = JsonUtils.stringListFromJsonNode(node, TAG);
-            tagline = JsonUtils.stringFromJsonNode(node, TAGLINE, null);
+            String text = JsonUtils.stringFromJsonNode(node, TAGLINE, null);
+            context_menu = contextMenu(text);
+            if (context_menu != null && context_menu.size() > 0) {
+                text = null;
+            }
+            tagline = TextUtils.isEmpty(text) ? plot : text;
             theme = JsonUtils.stringListFromJsonNode(node, THEME);
             thumbnail = JsonUtils.stringFromJsonNode(node, THUMBNAIL, null);
             title = JsonUtils.stringFromJsonNode(node, TITLE, null);
@@ -296,6 +305,80 @@ public class ListType {
             return obj instanceof ItemBase &&
                    this.id == ((ItemBase) obj).id;
         }
+
+        private List<MenuItem> contextMenu(String cm) {
+            if (!TextUtils.isEmpty(cm)) {
+                try {
+                    final ObjectMapper objectMapper = new ObjectMapper();
+                    JsonNode n = objectMapper.readTree(cm);
+                    if (n != null && n.isArray()) {
+                        ArrayList<MenuItem> result = new ArrayList<MenuItem>(n.size());
+                        for (JsonNode j : n) {
+                            MenuItem m = new MenuItem(j);
+                            if (!TextUtils.isEmpty(m.path)) {
+                                result.add(m);
+                            }
+                        }
+                        return result;
+                    }
+                } catch (IOException ioe) {
+                    // ignore it
+                }
+            }
+            return new ArrayList<MenuItem>(0);
+        }
+    }
+
+    public static final class MenuItem implements Parcelable {
+	    public final String title;
+	    public final String path;
+
+	    public MenuItem(JsonNode node) {
+            String tt = null;
+            String pp = null;
+            if (node != null && node.isArray()) {
+                String t = node.path(0).textValue();
+                String p = node.path(1).textValue();
+                if (!TextUtils.isEmpty(t) && !TextUtils.isEmpty(p)) {
+                    if (p.startsWith("Container.Update(")) {
+                        p = p.substring(17, p.length() - 1);
+                    }
+                    if (p.startsWith("RunPlugin(")) {
+                        p = p.substring(10, p.length() - 1);
+                    }
+                    if (p.startsWith("plugin://")) {
+                        pp = p;
+                        tt = t;
+                    }
+                }
+            }
+            title = tt;
+            path = pp;
+        }
+
+        private MenuItem(Parcel in) {
+            title = in.readString();
+            path = in.readString();
+        }
+
+        public int describeContents() {
+            return 0;
+        }
+
+        public void writeToParcel(Parcel out, int flags) {
+            out.writeString(title);
+            out.writeString(path);
+        }
+
+        public static final Parcelable.Creator<MenuItem> CREATOR = new Parcelable.Creator<MenuItem>() {
+            public MenuItem createFromParcel(Parcel in) {
+                return new MenuItem(in);
+            }
+
+            public MenuItem[] newArray(int size) {
+                return new MenuItem[size];
+            }
+        };
     }
 
     public static class ItemsAll extends ItemBase {
