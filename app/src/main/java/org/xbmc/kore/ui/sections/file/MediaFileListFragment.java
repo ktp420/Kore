@@ -305,7 +305,7 @@ public class MediaFileListFragment extends AbstractListFragment {
                 //ListType.FieldsFiles.LASTPLAYED, ListType.FieldsFiles.WRITER, ListType.FieldsFiles.STUDIO,
                 //ListType.FieldsFiles.MPAA, ListType.FieldsFiles.CAST, ListType.FieldsFiles.COUNTRY,
                 //ListType.FieldsFiles.IMDBNUMBER, ListType.FieldsFiles.PREMIERED,
-                //ListType.FieldsFiles.PRODUCTIONCODE,
+                ListType.FieldsFiles.PRODUCTIONCODE,
                 ListType.FieldsFiles.RUNTIME,
                 //ListType.FieldsFiles.SET,
                 //ListType.FieldsFiles.SHOWLINK, ListType.FieldsFiles.STREAMDETAILS,
@@ -568,9 +568,12 @@ public class MediaFileListFragment extends AbstractListFragment {
                 final int position = (Integer)v.getTag();
                 if (fileLocationItems != null) {
                     final FileLocation loc = fileLocationItems.get(position);
-                    if (!loc.isDirectory) {
+                    if (loc.has_context_menu()) {
                         final PopupMenu popupMenu = new PopupMenu(getActivity(), v);
-                        popupMenu.getMenuInflater().inflate(R.menu.media_filelist_item, popupMenu.getMenu());
+                        if (!loc.isDirectory) {
+                            popupMenu.getMenuInflater().inflate(
+                                    R.menu.media_filelist_item, popupMenu.getMenu());
+                        }
                         if (loc.cm != null) {
                             for (ListType.MenuItem i : loc.cm) {
                                 if (!TextUtils.isEmpty(i.title) && !TextUtils.isEmpty(i.path)) {
@@ -727,7 +730,7 @@ public class MediaFileListFragment extends AbstractListFragment {
                                                  fileLocation.artUrl, fileLocation.title,
                                                  art, artWidth, artHeight);
             // For the popup menu
-            if (fileLocation.isDirectory) {
+            if (!fileLocation.has_context_menu()) {
                 contextMenu.setVisibility(View.GONE);
             } else {
                 contextMenu.setVisibility(View.VISIBLE);
@@ -770,6 +773,10 @@ public class MediaFileListFragment extends AbstractListFragment {
             this.sizeDuration = sizeDuration;
             this.artUrl = artUrl;
             this.cm = cm;
+        }
+
+        protected boolean has_context_menu() {
+            return (!isDirectory || (cm != null && cm.size() > 0));
         }
 
         public static FileLocation newInstanceFromItemFile(Context context, ListType.ItemFile itemFile) {

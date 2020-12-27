@@ -280,10 +280,6 @@ public class ListType {
             style = JsonUtils.stringListFromJsonNode(node, STYLE);
             tag = JsonUtils.stringListFromJsonNode(node, TAG);
             String text = JsonUtils.stringFromJsonNode(node, TAGLINE, null);
-            context_menu = contextMenu(text);
-            if (context_menu != null && context_menu.size() > 0) {
-                text = null;
-            }
             tagline = TextUtils.isEmpty(text) ? plot : text;
             theme = JsonUtils.stringListFromJsonNode(node, THEME);
             thumbnail = JsonUtils.stringFromJsonNode(node, THUMBNAIL, null);
@@ -298,6 +294,8 @@ public class ListType {
             watchedepisodes = JsonUtils.intFromJsonNode(node, WATCHEDEPISODES, -1);
             writer = JsonUtils.stringListFromJsonNode(node, WRITER);
             year = JsonUtils.intFromJsonNode(node, YEAR, -1);
+
+            context_menu = contextMenu(JsonUtils.stringFromJsonNode(node, PRODUCTIONCODE, null));
         }
 
         @Override

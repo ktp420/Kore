@@ -197,8 +197,12 @@ public abstract class AbstractListFragment extends Fragment implements SwipeRefr
     }
 
     protected void show_input_dialog_if_needed(MediaFileListFragment.FileLocation f) {
-        final String title = f.title;
-        final String path = (f == null) ? null : f.file;
+        if (f != null) {
+            show_input_dialog_if_needed(f.title, f.file);
+        }
+    }
+
+    protected void show_input_dialog_if_needed(final String title, final String path) {
         if (!(getActivity() instanceof BaseMediaActivity)
                 || TextUtils.isEmpty(title) || !title.endsWith("...")
                 || TextUtils.isEmpty(path) || !path.startsWith("plugin://")) {

@@ -96,6 +96,7 @@ public class FavouritesListFragment extends AbstractListFragment {
                     final PlaylistType.Item playlistItem = new PlaylistType.Item();
                     playlistItem.file = detailsFavourite.path;
                     MediaPlayerUtils.play(FavouritesListFragment.this, playlistItem);
+                    show_input_dialog_if_needed(detailsFavourite.title, detailsFavourite.path);
                 } else {
                     Toast.makeText(getActivity(), R.string.unable_to_play_favourite_item,
                             Toast.LENGTH_SHORT).show();
