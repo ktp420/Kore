@@ -22,13 +22,15 @@
 
         <!-- Activities -->
         <activity
-            android:name="org.xbmc.kore.ui.sections.remote.RemoteActivity"
+            android:name="org.xbmc.kore.ui.sections.remote.RemoteActivity">
+            <!--
             android:label="@string/app_name" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
                 <category android:name="android.intent.category.MULTIWINDOW_LAUNCHER" />
             </intent-filter>
+            -->
 
             <intent-filter android:label="@string/play_on_kodi">
                 <action android:name="android.intent.action.SEND" />
@@ -150,7 +152,14 @@
         <activity android:name="org.xbmc.kore.ui.sections.localfile.LocalFileActivity"/>
         <activity android:name="org.xbmc.kore.ui.sections.video.PVRActivity"/>
         <activity android:name="org.xbmc.kore.ui.sections.video.AllCastActivity"/>
-        <activity android:name=".ui.sections.favourites.FavouritesActivity" />
+	    <activity android:name=".ui.sections.favourites.FavouritesActivity"
+            android:label="@string/app_name" >
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.MULTIWINDOW_LAUNCHER" />
+            </intent-filter>
+        </activity>
 
         <!-- Providers -->
         <provider

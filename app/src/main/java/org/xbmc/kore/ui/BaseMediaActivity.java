@@ -32,6 +32,7 @@ import android.widget.ImageView;
 
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.text.TextDirectionHeuristicsCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
@@ -44,12 +45,17 @@ import org.xbmc.kore.host.HostConnectionObserver;
 import org.xbmc.kore.host.HostManager;
 import org.xbmc.kore.jsonrpc.ApiCallback;
 import org.xbmc.kore.jsonrpc.ApiMethod;
+import org.xbmc.kore.jsonrpc.HostConnection;
 import org.xbmc.kore.jsonrpc.method.Application;
+import org.xbmc.kore.jsonrpc.method.Input;
 import org.xbmc.kore.jsonrpc.method.Player;
+import org.xbmc.kore.jsonrpc.method.System;
 import org.xbmc.kore.jsonrpc.type.ListType;
 import org.xbmc.kore.jsonrpc.type.PlayerType;
 import org.xbmc.kore.ui.generic.NavigationDrawerFragment;
+import org.xbmc.kore.ui.generic.SendTextDialogFragment;
 import org.xbmc.kore.ui.generic.VolumeControllerDialogFragmentListener;
+import org.xbmc.kore.ui.sections.hosts.AddHostActivity;
 import org.xbmc.kore.ui.sections.remote.RemoteActivity;
 import org.xbmc.kore.ui.widgets.MediaProgressIndicator;
 import org.xbmc.kore.ui.widgets.NowPlayingPanel;
@@ -62,11 +68,14 @@ import org.xbmc.kore.utils.Utils;
 import butterknife.BindView;
 import butterknife.ButterKnife;
 
+import java.util.concurrent.TimeUnit;
+
 public abstract class BaseMediaActivity extends BaseActivity
         implements HostConnectionObserver.ApplicationEventsObserver,
                    HostConnectionObserver.PlayerEventsObserver,
                    NowPlayingPanel.OnPanelButtonsClickListener,
-                   MediaProgressIndicator.OnProgressChangeListener {
+                   MediaProgressIndicator.OnProgressChangeListener,
+                   SendTextDialogFragment.SendTextDialogListener {
     private static final String TAG = LogUtils.makeLogTag(BaseMediaActivity.class);
 
     private static final String NAVICON_ISARROW = "navstate";
@@ -111,8 +120,23 @@ public abstract class BaseMediaActivity extends BaseActivity
         }
         super.onCreate(savedInstanceState);
 
+        // Set default values for the preferences
+        PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
+
         setContentView(R.layout.activity_generic_media);
         ButterKnife.bind(this);
+
+        hostManager = HostManager.getInstance(this);
+
+        // Check if we have any hosts setup
+        if (hostManager.getHostInfo() == null) {
+            final Intent intent = new Intent(this, AddHostActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
+            finish();
+            return;
+        }
 
         // Set up the drawer.
         navigationDrawerFragment = (NavigationDrawerFragment)getSupportFragmentManager()
@@ -158,8 +182,6 @@ public abstract class BaseMediaActivity extends BaseActivity
         if (Utils.isLollipopOrLater()) {
             sharedElementTransition.setupExitTransition(this, fragment);
         }
-
-        hostManager = HostManager.getInstance(this);
     }
 
     @Override
@@ -255,6 +277,31 @@ public abstract class BaseMediaActivity extends BaseActivity
                         .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
                 startActivity(launchIntent);
                 return true;
+            case R.id.action_wake_up:
+                UIUtils.sendWolAsync(this, hostManager.getHostInfo());
+                return true;
+            case R.id.action_quit:
+                Application.Quit actionQuit = new Application.Quit();
+                // Fire and forget
+                actionQuit.execute(hostManager.getConnection(), null, null);
+                return true;
+            case R.id.action_suspend:
+                System.Suspend actionSuspend = new System.Suspend();
+                // Fire and forget
+                actionSuspend.execute(hostManager.getConnection(), null, null);
+                return true;
+            case R.id.action_reboot:
+                System.Reboot actionReboot = new System.Reboot();
+                // Fire and forget
+                actionReboot.execute(hostManager.getConnection(), null, null);
+                return true;
+            case R.id.action_shutdown:
+                System.Shutdown actionShutdown = new System.Shutdown();
+                // Fire and forget
+                actionShutdown.execute(hostManager.getConnection(), null, null);
+                return true;
+            case R.id.send_text:
+                inputOnInputRequested(getString(R.string.send_text), null, null);
             default:
                 break;
         }
@@ -335,10 +382,6 @@ public abstract class BaseMediaActivity extends BaseActivity
     @Override
     public void systemOnQuit() {
         nowPlayingPanel.setPanelState(SlidingUpPanelLayout.PanelState.HIDDEN);
-    }
-
-    @Override
-    public void inputOnInputRequested(String title, String type, String value) {
     }
 
     @Override
@@ -545,5 +588,61 @@ public abstract class BaseMediaActivity extends BaseActivity
         UIUtils.loadImageWithCharacterAvatar(this, hostManager, poster, title,
                                              nowPlayingPanel.getPoster(),
                                              (isVideo) ? posterWidth : posterHeight, posterHeight);
+    }
+
+    public void show_send_dialog(String title) {
+        if (hostManager.getHostInfo().getProtocol() == HostConnection.PROTOCOL_HTTP) {
+            inputOnInputRequested(title, null, null);
+        }
+    }
+
+    @Override
+    public void inputOnInputRequested(String title, String type, String value) {
+        final SendTextDialogFragment dialog =
+                SendTextDialogFragment.newInstance(title);
+        dialog.show(getSupportFragmentManager(), null);
+        Thread t = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    TimeUnit.MILLISECONDS.sleep(HostConnection.TCP_READ_TIMEOUT - 2000);
+                    if (dialog != null && dialog.getDialog() != null 
+                            && dialog.getDialog().isShowing() && !dialog.isRemoving()) {
+                        dialog.dismissAllowingStateLoss();
+                        sendTextInput("kore_dummy_input", true, true);
+                    }
+                } catch (InterruptedException e) {
+                    // ignore
+                }
+            }
+        });
+        t.start();
+    }
+
+    /**
+     * Callbacks from Send text dialog
+     */
+    @Override
+    public void onSendTextFinished(String text, boolean done) {
+        if (TextDirectionHeuristicsCompat.FIRSTSTRONG_LTR.isRtl(text, 0, text.length())) {
+            text = new StringBuilder(text).reverse().toString();
+        }
+        sendTextInput(text,done, false);
+    }
+
+    @Override
+    public void onSendTextCancel() {
+        sendTextInput("kore_dummy_input", true, true);
+    }
+
+    private void sendTextInput(String text, boolean done, boolean isDummy) {
+        // HostManager hostManager = HostManager.getInstance(this);
+        // hostManager.getConnection().setIgnoreTcpResponse(isDummy);
+
+        // HostConnection httpHostConnection = new HostConnection(hostManager.getHostInfo());
+        // httpHostConnection.setProtocol(HostConnection.PROTOCOL_HTTP);
+
+        Input.SendText action = new Input.SendText(text, done);
+        action.execute(hostManager.getConnection(), null, null);
     }
 }

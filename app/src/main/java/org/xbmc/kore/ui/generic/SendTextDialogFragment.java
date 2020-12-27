@@ -157,6 +157,7 @@ public class SendTextDialogFragment extends DialogFragment {
                         finishAfterSend.isChecked());
             }
         });
+	textToSend.requestFocus();
         return dialog;
     }
 }

@@ -202,7 +202,7 @@ public class MediaFileListFragment extends AbstractListFragment {
                 browseDirectory(f);
             }
         } else {
-            playMediaFile(f.file);
+            playMediaFile(f);
         }
     }
 
@@ -359,15 +359,18 @@ public class MediaFileListFragment extends AbstractListFragment {
             }
         }, callbackHandler);
 
+        // show send input dialog if plugin file and title ends with '...'
+        // which tells it needs input from user
+        show_input_dialog_if_needed(dir);
     }
 
     /**
      * Starts playing the given media file
-     * @param filename Filename to start playing
+     * @param f File to start playing
      */
-    private void playMediaFile(final String filename) {
+    private void playMediaFile(final FileLocation f) {
         PlaylistType.Item item = new PlaylistType.Item();
-        item.file = filename;
+        item.file = f.file;
         Player.Open action = new Player.Open(item);
         action.execute(hostManager.getConnection(), new ApiCallback<String>() {
             @Override
@@ -385,6 +388,10 @@ public class MediaFileListFragment extends AbstractListFragment {
                                Toast.LENGTH_SHORT).show();
             }
         }, callbackHandler);
+
+        // show send input dialog if plugin file and title ends with '...'
+        // which tells it needs input from user
+        show_input_dialog_if_needed(f);
     }
 
     private Runnable queueMediaQueueFileLocations = new Runnable() {
@@ -580,7 +587,7 @@ public class MediaFileListFragment extends AbstractListFragment {
                                     //     queueMediaFile(loc.file);
                                     //     return true;
                                     case R.id.action_play_item:
-                                        playMediaFile(loc.file);
+                                        playMediaFile(loc);
                                         return true;
                                     case R.id.action_play_local_item:
                                         playMediaFileLocally(loc.file);
@@ -595,7 +602,7 @@ public class MediaFileListFragment extends AbstractListFragment {
                                     //             mediaQueueFileLocation.add(fl);
                                     //         }
                                     //     }
-                                    //     playMediaFile(loc.file);
+                                    //     playMediaFile(loc);
                                     //     return true;
                                     default:
                                         for (ListType.MenuItem i : loc.cm) {

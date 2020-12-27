@@ -37,6 +37,7 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import org.xbmc.kore.R;
 import org.xbmc.kore.Settings;
 import org.xbmc.kore.jsonrpc.method.Files;
+import org.xbmc.kore.ui.BaseMediaActivity;
 import org.xbmc.kore.ui.sections.file.MediaFileListFragment;
 import org.xbmc.kore.ui.viewgroups.RecyclerViewEmptyViewSupport;
 import org.xbmc.kore.utils.LogUtils;
@@ -153,7 +154,15 @@ public abstract class AbstractListFragment extends Fragment implements SwipeRefr
     }
  
 	public void hideRefreshAnimation() {
-		swipeRefreshLayout.setRefreshing(false);
+        if (isSafe()) {
+		    swipeRefreshLayout.setRefreshing(false);
+        }
+	}
+
+	public void showRefreshing() {
+        if (isSafe()) {
+		    swipeRefreshLayout.setRefreshing(true);
+        }
 	}
 
 	public RecyclerView.Adapter getAdapter() {
@@ -182,6 +191,22 @@ public abstract class AbstractListFragment extends Fragment implements SwipeRefr
         return true;
     }
 
+    protected boolean isSafe(){
+        return !(this.isRemoving() || this.getActivity() == null
+                || this.isDetached() || !this.isAdded() || this.getView() == null);
+    }
+
+    protected void show_input_dialog_if_needed(MediaFileListFragment.FileLocation f) {
+        final String title = f.title;
+        final String path = (f == null) ? null : f.file;
+        if (!(getActivity() instanceof BaseMediaActivity)
+                || TextUtils.isEmpty(title) || !title.endsWith("...")
+                || TextUtils.isEmpty(path) || !path.startsWith("plugin://")) {
+            return;
+        }
+        ((BaseMediaActivity) getActivity()).show_send_dialog(title);
+    }
+
 	/**
 	 * Returns the view that is displayed when the gridview has no items to show
 	 * @return
@@ -196,7 +221,7 @@ public abstract class AbstractListFragment extends Fragment implements SwipeRefr
         }
 
         public void onPreExecute() {
-            swipeRefreshLayout.setRefreshing(true);
+            showRefreshing();
         }
     }
 }
