@@ -56,7 +56,7 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
-import java.util.regex.Pattern;
+// import java.util.regex.Pattern;
 
 /**
  * Presents a list of files of different types (Video/Music)
@@ -72,6 +72,7 @@ public class MediaFileListFragment extends AbstractListFragment {
     public static final String ROOT_PATH = "rootPath";
     public static final String DELAY_LOAD = "delayLoad";
     private static final String ADDON_SOURCE = "addons:";
+    private static final String PARENT_DIR_TITLE = "..";
 
     private HostManager hostManager;
     /**
@@ -208,7 +209,10 @@ public class MediaFileListFragment extends AbstractListFragment {
 
     public void onBackPressed() {
         // Emulate a click on ..
-        handleFileSelect(((MediaFileListAdapter) getAdapter()).getItem(0));
+        FileLocation fl = ((MediaFileListAdapter) getAdapter()).getItem(0);
+	    if (fl != null && PARENT_DIR_TITLE.equals(fl.title)) {
+            handleFileSelect(fl);
+        }
     }
 
     public boolean atRootDirectory() {
@@ -338,7 +342,7 @@ public class MediaFileListFragment extends AbstractListFragment {
 
                 if (dir.hasParent) {
                     // insert the parent directory as the first item in the list
-                    FileLocation fl = new FileLocation("..", parentDirectory, true);
+                    FileLocation fl = new FileLocation(PARENT_DIR_TITLE, parentDirectory, true);
                     fl.setRootDir(dir.isRootDir());
                     flList.add(0, fl);
                 }
@@ -657,7 +661,7 @@ public class MediaFileListFragment extends AbstractListFragment {
         }
 
         public FileLocation getItem(int position) {
-            if (fileLocationItems == null) {
+            if (fileLocationItems == null || position < 0 || position >= fileLocationItems.size()) {
                 return null;
             } else {
                 return fileLocationItems.get(position);
@@ -760,12 +764,12 @@ public class MediaFileListFragment extends AbstractListFragment {
             this(title, path, isDir, null, null, null, new ArrayList<ListType.MenuItem>(0));
         }
 
-        static final Pattern noParent = Pattern.compile("plugin://[^/]*/?");
+        // static final Pattern noParent = Pattern.compile("plugin://[^/]*/?");
         public FileLocation(String title, String path, boolean isDir, String details, String sizeDuration, String artUrl, List<ListType.MenuItem> cm) {
             this.title = title;
             this.file = path;
             this.isDirectory = isDir;
-            this.hasParent = !noParent.matcher(path).matches();
+            this.hasParent = (path != null && !path.startsWith("plugin://")); // !noParent.matcher(path).matches());
 
             this.isRoot = false;
 
