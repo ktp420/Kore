@@ -121,7 +121,7 @@ public abstract class BaseMediaActivity extends BaseActivity
         super.onCreate(savedInstanceState);
 
         // Set default values for the preferences
-        PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
+        // PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
 
         setContentView(R.layout.activity_generic_media);
         ButterKnife.bind(this);

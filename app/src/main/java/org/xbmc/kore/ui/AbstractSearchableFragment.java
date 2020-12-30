@@ -21,7 +21,7 @@ import android.widget.EditText;
 import org.xbmc.kore.R;
 import org.xbmc.kore.jsonrpc.event.MediaSyncEvent;
 
-public abstract class AbstractSearchableFragment extends Fragment implements SearchView.OnQueryTextListener {
+public abstract class AbstractSearchableFragment extends AbstractListFragment implements SearchView.OnQueryTextListener {
 
     private String searchFilter = null;
     private String savedSearchFilter;

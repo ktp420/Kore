@@ -34,7 +34,6 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import org.xbmc.kore.R;
 import org.xbmc.kore.host.HostManager;
-import org.xbmc.kore.jsonrpc.ApiCallback;
 import org.xbmc.kore.jsonrpc.ApiList;
 import org.xbmc.kore.jsonrpc.method.Favourites;
 import org.xbmc.kore.jsonrpc.method.GUI;
@@ -128,7 +127,6 @@ public class FavouritesListFragment extends AbstractListFragment {
                 // To prevent the empty text from appearing on the first load, set it now
                 getEmptyView().setText(getString(R.string.no_channels_found_refresh));
                 ((FavouritesAdapter) getAdapter()).setFavouriteItems(result.items);
-                hideRefreshAnimation();
             }
 
             @Override
@@ -139,7 +137,6 @@ public class FavouritesListFragment extends AbstractListFragment {
                 getEmptyView().setText(getString(R.string.error_favourites, description));
                 Toast.makeText(getActivity(), getString(R.string.error_favourites, description),
                         Toast.LENGTH_SHORT).show();
-                hideRefreshAnimation();
             }
         }, callbackHandler);
     }
@@ -233,7 +230,7 @@ public class FavouritesListFragment extends AbstractListFragment {
 
             UIUtils.loadImageWithCharacterAvatar(context, hostManager,
                                                  favouriteDetail.thumbnail, favouriteDetail.title,
-                                                 artView, artWidth, artHeight);
+                                                 artView, artWidth, artHeight, true);
         }
     }
 }

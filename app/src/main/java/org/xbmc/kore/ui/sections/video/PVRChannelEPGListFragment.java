@@ -23,19 +23,17 @@ import android.text.format.DateUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
-import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
+import androidx.recyclerview.widget.RecyclerView;
 
 import org.xbmc.kore.R;
 import org.xbmc.kore.host.HostManager;
-import org.xbmc.kore.jsonrpc.ApiCallback;
 import org.xbmc.kore.jsonrpc.method.PVR;
 import org.xbmc.kore.jsonrpc.type.PVRType;
 import org.xbmc.kore.ui.AbstractSearchableFragment;
+import org.xbmc.kore.ui.viewgroups.RecyclerViewEmptyViewSupport;
 import org.xbmc.kore.utils.LogUtils;
 import org.xbmc.kore.utils.UIUtils;
 
@@ -44,34 +42,35 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
-import butterknife.ButterKnife;
-import butterknife.BindView;
-import butterknife.Unbinder;
-
 /**
  * Fragment that presents the Guide for a channel
  */
-public class PVRChannelEPGListFragment extends AbstractSearchableFragment
-        implements SwipeRefreshLayout.OnRefreshListener {
+public class PVRChannelEPGListFragment extends AbstractSearchableFragment {
     private static final String TAG = LogUtils.makeLogTag(PVRChannelEPGListFragment.class);
 
     private HostManager hostManager;
     private int channelId;
-
-    @BindView(R.id.list) ListView listView;
-    @BindView(R.id.swipe_refresh_layout) SwipeRefreshLayout swipeRefreshLayout;
-    @BindView(android.R.id.empty) TextView emptyView;
 
     /**
      * Handler on which to post RPC callbacks
      */
     private Handler callbackHandler = new Handler();
 
-    private BoadcastsAdapter boadcastsAdapter = null;
-
     private static final String BUNDLE_KEY_CHANNELID = "bundle_key_channelid";
 
-    private Unbinder unbinder;
+    @Override
+    protected RecyclerView.Adapter createAdapter() {
+        return new BoadcastsAdapter(getActivity(), R.layout.list_item_broadcast);
+    }
+
+    @Override
+    protected RecyclerViewEmptyViewSupport.OnItemClickListener createOnItemClickListener() {
+        return new RecyclerViewEmptyViewSupport.OnItemClickListener() {
+            @Override
+            public void onItemClick(View view, int position) {
+            }
+        };
+    }
 
     /**
      * Create a new instance of this, initialized to show the current channel
@@ -86,14 +85,8 @@ public class PVRChannelEPGListFragment extends AbstractSearchableFragment
     }
 
     @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-    }
-
-    @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        ViewGroup root = (ViewGroup) inflater.inflate(R.layout.fragment_generic_list, container, false);
-        unbinder = ButterKnife.bind(this, root);
+        View root = super.onCreateView(inflater, container, savedInstanceState);
 
         Bundle bundle = getArguments();
         channelId = bundle.getInt(BUNDLE_KEY_CHANNELID, -1);
@@ -105,17 +98,13 @@ public class PVRChannelEPGListFragment extends AbstractSearchableFragment
 
         hostManager = HostManager.getInstance(getActivity());
 
-        swipeRefreshLayout.setOnRefreshListener(this);
 
-        emptyView.setOnClickListener(new View.OnClickListener() {
+        getEmptyView().setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 onRefresh();
             }
         });
-        listView.setEmptyView(emptyView);
-
-        super.onCreateView(inflater, container, savedInstanceState);
 
         return root;
     }
@@ -128,11 +117,6 @@ public class PVRChannelEPGListFragment extends AbstractSearchableFragment
         browseEPG();
     }
 
-    @Override
-    public void onDestroyView() {
-        super.onDestroyView();
-        unbinder.unbind();
-    }
 
     /**
      * Swipe refresh layout callback
@@ -143,7 +127,7 @@ public class PVRChannelEPGListFragment extends AbstractSearchableFragment
         if (hostManager.getHostInfo() != null) {
             browseEPG();
         } else {
-            swipeRefreshLayout.setRefreshing(false);
+            hideRefreshAnimation();
             Toast.makeText(getActivity(), R.string.no_xbmc_configured, Toast.LENGTH_SHORT)
                  .show();
         }
@@ -164,12 +148,11 @@ public class PVRChannelEPGListFragment extends AbstractSearchableFragment
             public void onSuccess(List<PVRType.DetailsBroadcast> result) {
                 if (!isAdded()) return;
                 // To prevent the empty text from appearing on the first load, set it now
-                emptyView.setText(getString(R.string.no_broadcasts_found_refresh));
+                getEmptyView().setText(getString(R.string.no_broadcasts_found_refresh));
 
                 List<PVRType.DetailsBroadcast> finalResult = filter(result);
-
-                setupEPGListview(finalResult);
-                swipeRefreshLayout.setRefreshing(false);
+                ((BoadcastsAdapter) getAdapter()).setItems(
+                        EPGListRow.buildFromBroadcastList(result));
             }
 
             @Override
@@ -177,11 +160,10 @@ public class PVRChannelEPGListFragment extends AbstractSearchableFragment
                 if (!isAdded()) return;
                 LogUtils.LOGD(TAG, "Error getting broadcasts: " + description);
                 // To prevent the empty text from appearing on the first load, set it now
-                emptyView.setText(String.format(getString(R.string.error_getting_pvr_info), description));
+                getEmptyView().setText(String.format(getString(R.string.error_getting_pvr_info), description));
                 Toast.makeText(getActivity(),
                                String.format(getString(R.string.error_getting_pvr_info), description),
                                Toast.LENGTH_SHORT).show();
-                swipeRefreshLayout.setRefreshing(false);
             }
         }, callbackHandler);
     }
@@ -227,108 +209,116 @@ public class PVRChannelEPGListFragment extends AbstractSearchableFragment
         return false;
     }
 
-    /**
-     * Called when we get the Guide
-     *
-     * @param result Broadcasts obtained
-     */
-    private void setupEPGListview(List<PVRType.DetailsBroadcast> result) {
-        if (boadcastsAdapter == null) {
-            boadcastsAdapter = new BoadcastsAdapter(getActivity(), R.layout.list_item_broadcast);
-        }
+    private class BoadcastsAdapter extends RecyclerView.Adapter {
+        Context ctx;
+        int resource;
+        List<EPGListRow> items;
 
-        listView.setAdapter(boadcastsAdapter);
-        boadcastsAdapter.clear();
-        boadcastsAdapter.addAll(EPGListRow.buildFromBroadcastList(result));
-        boadcastsAdapter.notifyDataSetChanged();
-    }
-
-    private class BoadcastsAdapter extends ArrayAdapter<EPGListRow> {
         public BoadcastsAdapter(Context context, int resource) {
-            super(context, resource);
+            super();
+            this.ctx = context;
+            this.resource = resource;
+            this.items = null;
         }
 
-        /** {@inheritDoc} */
-        @Override
-        public int getViewTypeCount() {
-            return 2;
+        public void setItems(List<EPGListRow> items) {
+            this.items = items;
+            notifyDataSetChanged();
         }
 
-        /** {@inheritDoc} */
-        @Override
-        public int getItemViewType(int position) {
-            return this.getItem(position).rowType;
-        }
-
-        /** {@inheritDoc} */
-        @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
-            EPGListRow row = this.getItem(position);
-
-            // For a broadcast
-            if (row.rowType == EPGListRow.TYPE_BROADCAST) {
-                if (convertView == null) {
-                    convertView = LayoutInflater
-                            .from(getActivity())
-                            .inflate(R.layout.list_item_broadcast, parent, false);
-
-                    // Setup View holder pattern
-                    BroadcastViewHolder viewHolder = new BroadcastViewHolder();
-                    viewHolder.titleView = (TextView) convertView.findViewById(R.id.title);
-                    viewHolder.detailsView = (TextView) convertView.findViewById(R.id.details);
-                    viewHolder.startTimeView = (TextView) convertView.findViewById(R.id.start_time);
-                    viewHolder.endTimeView = (TextView) convertView.findViewById(R.id.end_time);
-                    convertView.setTag(viewHolder);
-                }
-
-                final BroadcastViewHolder viewHolder = (BroadcastViewHolder) convertView.getTag();
-                PVRType.DetailsBroadcast broadcastDetails = row.detailsBroadcast;
-
-                viewHolder.broadcastId = broadcastDetails.broadcastid;
-                viewHolder.title = broadcastDetails.title;
-
-                Context context = getContext();
-                viewHolder.titleView.setText(UIUtils.applyMarkup(context, broadcastDetails.title));
-                viewHolder.detailsView.setText(UIUtils.applyMarkup(context, broadcastDetails.plot));
-                String duration = context.getString(R.string.minutes_abbrev2,
-                                                    String.valueOf(broadcastDetails.runtime));
-
-                int flags = DateUtils.FORMAT_ABBREV_ALL | DateUtils.FORMAT_SHOW_TIME;
-                viewHolder.startTimeView.setText(DateUtils.formatDateTime(getActivity(), broadcastDetails.starttime.getTime(), flags));
-                viewHolder.endTimeView.setText(duration);
-            } else {
-                // For a day
-                if (convertView == null) {
-                    convertView = LayoutInflater
-                            .from(getActivity())
-                            .inflate(R.layout.list_item_day, parent, false);
-
-                    // Setup View holder pattern
-                    BroadcastViewHolder viewHolder = new BroadcastViewHolder();
-                    viewHolder.dayView = (TextView) convertView.findViewById(R.id.day);
-                    convertView.setTag(viewHolder);
-                }
-                final BroadcastViewHolder viewHolder = (BroadcastViewHolder) convertView.getTag();
-                viewHolder.dayView.setText(
-                        DateUtils.formatDateTime(getActivity(), row.date.getTime(),
-                                                 DateUtils.FORMAT_SHOW_DATE | DateUtils.FORMAT_SHOW_WEEKDAY));
+        public EPGListRow getItem(int position) {
+            if (items == null || position < 0 || position >= items.size()) {
+                return null;
             }
-            return convertView;
+            return items.get(position);
+        }
+
+        @Override
+        public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+            View view = LayoutInflater.from(ctx)
+                                      .inflate(resource, parent, false);
+            return new ViewHolder(view, ctx);
+        }
+
+        @Override
+        public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
+            EPGListRow item = this.getItem(position);
+            ((ViewHolder) holder).bindView(item, position);
+        }
+
+        @Override
+        public long getItemId(int position) {
+            return position;
+        }
+
+        @Override
+        public int getItemCount() {
+            if (items == null) {
+                return 0;
+            } else {
+                return items.size();
+            }
         }
     }
 
     /**
      * View holder pattern
      */
-    private static class BroadcastViewHolder {
-        TextView titleView, detailsView,
-                startTimeView, endTimeView,
-                dayView;
+    private static class ViewHolder extends RecyclerView.ViewHolder {
+        TextView title;
+        TextView details;
+        TextView start_time;
+        TextView end_time;
+        TextView day;
+        View separator;
 
-        int broadcastId;
-        String title;
+        Context context;
+
+        ViewHolder(View itemView, Context context) {
+            super(itemView);
+            this.context = context;
+            title = itemView.findViewById(R.id.title);
+            details = itemView.findViewById(R.id.details);
+            start_time = itemView.findViewById(R.id.start_time);
+            end_time = itemView.findViewById(R.id.end_time);
+            day = itemView.findViewById(R.id.day);
+            separator = itemView.findViewById(R.id.separator);
+        }
+
+        public void bindView(EPGListRow item, int position) {
+            String st;
+            if (item.rowType == EPGListRow.TYPE_DAY) {
+                st = DateUtils.formatDateTime(context, item.date.getTime(),
+                        DateUtils.FORMAT_SHOW_DATE | DateUtils.FORMAT_SHOW_WEEKDAY);
+                day.setText(st);
+                details.setVisibility(View.GONE);
+                start_time.setVisibility(View.GONE);
+                end_time.setVisibility(View.GONE);
+                title.setVisibility(View.GONE);
+                day.setVisibility(View.VISIBLE);
+                separator.setVisibility(View.VISIBLE);
+            } else {
+                day.setVisibility(View.GONE);
+                separator.setVisibility(View.GONE);
+                PVRType.DetailsBroadcast broadcastDetails = item.detailsBroadcast;
+
+                title.setText(UIUtils.applyMarkup(context, broadcastDetails.title));
+                details.setText(UIUtils.applyMarkup(context, broadcastDetails.plot));
+                String duration = context.getString(R.string.minutes_abbrev2,
+                                                    String.valueOf(broadcastDetails.runtime));
+
+                st = DateUtils.formatDateTime(context,
+                        broadcastDetails.starttime.getTime(),
+                        DateUtils.FORMAT_ABBREV_ALL | DateUtils.FORMAT_SHOW_TIME);
+                start_time.setText(st);
+                end_time.setText(duration);
+                details.setVisibility(View.VISIBLE);
+                start_time.setVisibility(View.VISIBLE);
+                end_time.setVisibility(View.VISIBLE);
+                title.setVisibility(View.VISIBLE);
+            }
+        }
     }
-
 
     /**
      * Class that represents a row in the EPG list

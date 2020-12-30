@@ -63,4 +63,27 @@
         android:layout_toRightOf="@id/end_time"
         android:layout_toEndOf="@id/end_time"
         style="@style/TextAppearance.Medialist.Details"/>
+    <TextView
+        android:id="@+id/day"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentLeft="true"
+        android:textAppearance="@style/TextAppearance.List.Day"
+        android:paddingTop="@dimen/small_padding"
+        android:paddingBottom="@dimen/tiny_padding"
+        android:paddingLeft="@dimen/small_padding"
+        android:paddingRight="@dimen/small_padding"/>
+    <!-- Simple separator -->
+    <View
+        android:id="@+id/separator"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentLeft="true"
+        android:layout_below="@id/day"
+        android:layout_marginBottom="@dimen/tiny_padding"
+        android:layout_marginLeft="@dimen/small_padding"
+        android:layout_marginRight="@dimen/small_padding"
+        android:background="?attr/colorAccent"/>
 </RelativeLayout>
