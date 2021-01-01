@@ -50,6 +50,8 @@
     <string name="weather">Weather</string>
     <string name="system">System</string>
 
+    <string name="fav_modified">Favourites modified.</string>
+
     <string name="no_xbmc_configured">No media center configured</string>
     <string name="add_xbmc">Add Media Center</string>
 
@@ -431,6 +433,7 @@
     	If that\'s the case and you\'d like to remove this entry from the side menu, you can do it in the Settings.</string>
     <string name="error_starting_channel">An error occurred starting channel playback: %1$s</string>
     <string name="error_favourites">An error occurred while getting the favourites with description: %1$s</string>
+    <string name="error_mod_fav">An error ocuurred while modifing favourites: %1$s</string>
     <string name="error_starting_recording">An error occurred starting a recording: %1$s</string>
     <string name="error_starting_to_record">An error occurred while recording: %1$s</string>
     <string name="channel_switching">Switching to channel %1$s</string>

@@ -72,4 +72,60 @@ public class Favourites {
             return new ApiList<>(result, limits);
         }
     }
+
+    /**
+     * Add a favourite with the given details
+     */
+    public static class AddFavourite extends ApiMethod<String> {
+        public static final String METHOD_NAME = "Favourites.AddFavourite";
+
+        /**
+         * Add a favourite with the given details
+         * @param title Required String
+         * @param type Required String enum in
+         *             {@link org.xbmc.kore.jsonrpc.type.FavouriteType.FavouriteTypeEnum}
+         * @param path Required path for media, script and androidapp favourites types
+         *              or windowparameter for Window type
+         * @param window Required for window favourite type
+         */
+        public AddFavourite(String title, String type, String path, String window) {
+            addParameterToRequest("title", title);
+            addParameterToRequest("type", type);
+            if (type !=null && FavouriteType.FavouriteTypeEnum.WINDOW.equals(type)) {
+                addParameterToRequest("windowparameter", path);
+            } else {
+                addParameterToRequest("path", path);
+            }
+            addParameterToRequest("window", window);
+        }
+
+        @Override
+        public String getMethodName() {
+            return METHOD_NAME;
+        }
+
+        @Override
+        public String resultFromJson(ObjectNode jsonObject) throws ApiException {
+            return jsonObject.get(RESULT_NODE).textValue();
+        }
+    }
+
+    /**
+     * Remove a favourite with the given details.
+     */
+    public static class RemoveFavourite extends AddFavourite {
+
+        /**
+         * Remove a favourite with the given details.
+         * @param title Required String
+         * @param type Required String enum in
+         *             {@link org.xbmc.kore.jsonrpc.type.FavouriteType.FavouriteTypeEnum}
+         * @param path Required path for media, script and androidapp favourites types
+         *              or windowparameter for Window type
+         * @param window Required for window favourite type
+         */
+        public RemoveFavourite(String title, String type, String path, String window) {
+            super(title, type, path, window);
+        }
+    }
 }

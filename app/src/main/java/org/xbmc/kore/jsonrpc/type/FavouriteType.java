@@ -31,6 +31,7 @@ public class FavouriteType {
         String MEDIA = "media";
         String WINDOW = "window";
         String SCRIPT = "script";
+	String ANDROID_APP = "androidapp";
         String UNKNOWN = "unknown";
     }
 

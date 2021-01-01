@@ -21,9 +21,11 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.PopupMenu;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -141,7 +143,7 @@ public class FavouritesListFragment extends AbstractListFragment {
         }, callbackHandler);
     }
 
-    private static class FavouritesAdapter extends RecyclerView.Adapter {
+    private class FavouritesAdapter extends RecyclerView.Adapter {
 
         private final HostManager hostManager;
         private final int artWidth, artHeight;
@@ -186,14 +188,16 @@ public class FavouritesListFragment extends AbstractListFragment {
         }
     }
 
-    private static class ViewHolder extends RecyclerView.ViewHolder {
+    private class ViewHolder extends RecyclerView.ViewHolder
+            implements View.OnClickListener {
         final ImageView artView;
         final TextView titleView;
         final TextView detailView;
-        HostManager hostManager;
-        int artWidth;
-        int artHeight;
-        Context context;
+        final ImageView contextMenu;
+        final HostManager hostManager;
+        final int artWidth;
+        final int artHeight;
+        final Context context;
 
         ViewHolder(View itemView, Context context, HostManager hostManager, int artWidth, int artHeight) {
             super(itemView);
@@ -204,9 +208,8 @@ public class FavouritesListFragment extends AbstractListFragment {
             artView = itemView.findViewById(R.id.art);
             titleView = itemView.findViewById(R.id.title);
             detailView = itemView.findViewById(R.id.details);
-
-            View contextMenu = itemView.findViewById(R.id.list_context_menu);
-            contextMenu.setVisibility(View.GONE);
+            contextMenu = itemView.findViewById(R.id.list_context_menu);
+            contextMenu.setOnClickListener(this);
         }
 
         void bindView(FavouriteType.DetailsFavourite favouriteDetail) {
@@ -231,6 +234,54 @@ public class FavouritesListFragment extends AbstractListFragment {
             UIUtils.loadImageWithCharacterAvatar(context, hostManager,
                                                  favouriteDetail.thumbnail, favouriteDetail.title,
                                                  artView, artWidth, artHeight, true);
+            contextMenu.setVisibility(View.VISIBLE);
+            contextMenu.setTag(favouriteDetail);
+        }
+
+        @Override
+        public void onClick(View v) {
+            final FavouriteType.DetailsFavourite f = (FavouriteType.DetailsFavourite) v.getTag();
+            final PopupMenu popupMenu = new PopupMenu(context, v);
+            popupMenu.getMenuInflater().inflate(
+                    R.menu.media_filelist_item_fav, popupMenu.getMenu());
+            popupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+                @Override
+                public boolean onMenuItemClick(MenuItem item) {
+                    switch (item.getItemId()) {
+                        case R.id.action_favourites:
+                            favourites(f);
+                            return true;
+                    }
+                    return false;
+                }
+            });
+	    popupMenu.show();
+        }
+
+        /**
+         * Add or remove, if already added, the given media file from favourites.
+         * @param f File to add/remove from favourites
+         */
+        private void favourites(final FavouriteType.DetailsFavourite f) {
+            String path = f.path;
+            if (FavouriteType.FavouriteTypeEnum.WINDOW.equals(f.type)) {
+                path = f.windowParameter;
+            }
+            Favourites.AddFavourite action = new Favourites.AddFavourite(f.title, f.type, path, f.window);
+            action.execute(hostManager.getConnection(), new ApiCallback<String>() {
+                @Override
+                public void onSuccess(String result) {
+                    Toast.makeText(context, R.string.fav_modified, Toast.LENGTH_SHORT).show();
+                    onRefresh();
+                }
+
+                @Override
+                public void onError(int errorCode, String description) {
+                    Toast.makeText(context,
+                                   String.format(context.getString(R.string.error_mod_fav), description),
+                                   Toast.LENGTH_SHORT).show();
+                }
+            }, callbackHandler);
         }
     }
 }

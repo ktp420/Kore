@@ -38,10 +38,12 @@ import androidx.recyclerview.widget.RecyclerView;
 import org.xbmc.kore.R;
 import org.xbmc.kore.host.HostManager;
 import org.xbmc.kore.jsonrpc.HostConnection;
+import org.xbmc.kore.jsonrpc.method.Favourites;
 import org.xbmc.kore.jsonrpc.method.Files;
 import org.xbmc.kore.jsonrpc.method.Player;
 import org.xbmc.kore.jsonrpc.method.Playlist;
 import org.xbmc.kore.jsonrpc.type.ItemType;
+import org.xbmc.kore.jsonrpc.type.FavouriteType;
 import org.xbmc.kore.jsonrpc.type.ListType;
 import org.xbmc.kore.jsonrpc.type.PlayerType;
 import org.xbmc.kore.jsonrpc.type.PlaylistType;
@@ -369,6 +371,34 @@ public class MediaFileListFragment extends AbstractListFragment {
     }
 
     /**
+     * Add or remove, if already added, the given media file from favourites.
+     * @param f File to add/remove from favourites
+     */
+    private void favourites(final FileLocation f) {
+        String window = null;
+        String type = FavouriteType.FavouriteTypeEnum.MEDIA;
+        if (f.isDirectory) {
+            type = FavouriteType.FavouriteTypeEnum.WINDOW;
+            window = "videos";
+        }
+        Favourites.AddFavourite action = new Favourites.AddFavourite(f.title, type, f.file, window);
+        action.execute(hostManager.getConnection(), new ApiCallback<String>() {
+            @Override
+            public void onSuccess(String result) {
+                Toast.makeText(getActivity(), R.string.fav_modified, Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onError(int errorCode, String description) {
+                if (!isAdded()) return;
+                Toast.makeText(getActivity(),
+                               String.format(getString(R.string.error_mod_fav), description),
+                               Toast.LENGTH_SHORT).show();
+            }
+        }, callbackHandler);
+    }
+
+    /**
      * Starts playing the given media file
      * @param f File to start playing
      */
@@ -382,6 +412,7 @@ public class MediaFileListFragment extends AbstractListFragment {
                 HostConnection connection = hostManager.getConnection();
                 startPlaylistIfNoActivePlayers(connection, playlistId, callbackHandler);
                 callbackHandler.post(queueMediaQueueFileLocations);
+		        Toast.makeText(getActivity(), R.string.now_playing, Toast.LENGTH_SHORT).show();
             }
 
             @Override
@@ -574,6 +605,8 @@ public class MediaFileListFragment extends AbstractListFragment {
                     final FileLocation loc = fileLocationItems.get(position);
                     if (loc.has_context_menu()) {
                         final PopupMenu popupMenu = new PopupMenu(getActivity(), v);
+                        popupMenu.getMenuInflater().inflate(
+                                R.menu.media_filelist_item_fav, popupMenu.getMenu());
                         if (!loc.isDirectory) {
                             popupMenu.getMenuInflater().inflate(
                                     R.menu.media_filelist_item, popupMenu.getMenu());
@@ -593,6 +626,9 @@ public class MediaFileListFragment extends AbstractListFragment {
                                     // case R.id.action_queue_item:
                                     //     queueMediaFile(loc.file);
                                     //     return true;
+                                    case R.id.action_favourites:
+                                        favourites(loc);
+                                        return true;
                                     case R.id.action_play_item:
                                         playMediaFile(loc);
                                         return true;
