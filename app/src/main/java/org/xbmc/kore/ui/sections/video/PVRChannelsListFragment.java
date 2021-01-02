@@ -21,6 +21,7 @@ import android.content.res.Resources;
 import android.os.Bundle;
 import android.os.Handler;
 import android.text.TextUtils;
+import android.text.format.DateUtils;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
@@ -30,9 +31,11 @@ import android.widget.ArrayAdapter;
 import android.widget.GridView;
 import android.widget.ImageView;
 import android.widget.PopupMenu;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.constraintlayout.widget.Group;
 import androidx.recyclerview.widget.RecyclerView;
 
 import org.xbmc.kore.R;
@@ -49,6 +52,7 @@ import org.xbmc.kore.utils.LogUtils;
 import org.xbmc.kore.utils.UIUtils;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -99,7 +103,7 @@ public class PVRChannelsListFragment extends AbstractSearchableFragment
 
     @Override
     protected RecyclerView.Adapter createAdapter() {
-        return new ChannelAdapter(getActivity(), R.layout.grid_item_file);
+        return new ChannelAdapter(getActivity(), R.layout.grid_item_channel2);
     }
 
     @Override
@@ -485,7 +489,15 @@ public class PVRChannelsListFragment extends AbstractSearchableFragment
     private static class ViewHolder extends RecyclerView.ViewHolder {
         ImageView art;
         TextView title;
+        TextView epg_start;
         TextView details;
+        TextView epg_end;
+        ProgressBar progress;
+        TextView epg_next_start;
+        TextView epg_next_name;
+        TextView epg_next_end;
+        Group epg;
+        Group epg_next;
         ImageView contextMenu;
         HostManager hostManager;
 
@@ -502,9 +514,26 @@ public class PVRChannelsListFragment extends AbstractSearchableFragment
             this.artHeight = artHeight;
             art = itemView.findViewById(R.id.art);
             title = itemView.findViewById(R.id.title);
-            details = itemView.findViewById(R.id.details);
+            epg_start = itemView.findViewById(R.id.epg_start);
+            details = itemView.findViewById(R.id.epg_name);
+            epg_end = itemView.findViewById(R.id.epg_end);
+            progress = itemView.findViewById(R.id.progress);
+            epg_next_start = itemView.findViewById(R.id.epg_next_start);
+            epg_next_name = itemView.findViewById(R.id.epg_next_name);
+            epg_next_end = itemView.findViewById(R.id.epg_next_end);
+            epg = itemView.findViewById(R.id.epg);
+            epg_next = itemView.findViewById(R.id.epg_next);
             contextMenu = itemView.findViewById(R.id.list_context_menu);
             contextMenu.setOnClickListener(itemMenuClickListener);
+        }
+
+        private String time(Date d) {
+            String st = DateUtils.formatDateTime(context, d.getTime(),
+                    DateUtils.FORMAT_SHOW_TIME);
+            if (st != null && st.length() < 8) {
+                st = "0" + st;
+            }
+            return st;
         }
 
         public void bindView(DetailsBase base, int position) {
@@ -512,16 +541,38 @@ public class PVRChannelsListFragment extends AbstractSearchableFragment
             if (base instanceof PVRType.DetailsChannelGroup) {
                 PVRType.DetailsChannelGroup item = (PVRType.DetailsChannelGroup) base;
                 _title = item.label;
-                details.setVisibility(View.GONE);
+                epg.setVisibility(View.GONE);
+                epg_next.setVisibility(View.GONE);
                 contextMenu.setVisibility(View.GONE);
             } else {
                 PVRType.DetailsChannel item = (PVRType.DetailsChannel) base;
                 _title = item.channel;
-                String _details = (item.broadcastnow != null) ? item.broadcastnow.title : null;
-                details.setText(UIUtils.applyMarkup(context, _details));
+                String _details = null;
+                PVRType.DetailsBroadcast b = item.broadcastnow;
+                if (b != null) {
+                    _details =  b.title;
+                    details.setText(UIUtils.applyMarkup(context, _details));
+                    epg_start.setText(time(b.starttime));
+                    epg_end.setText(time(b.endtime));
+                    progress.setProgress((int)b.progresspercentage);
+                    epg.setVisibility(View.VISIBLE);
+
+                    b = item.broadcastnext;
+                    if (b != null) {
+                        epg_next_name.setText(UIUtils.applyMarkup(context, b.title));
+                        epg_next_start.setText(time(b.starttime));
+                        epg_next_end.setText(time(b.endtime));
+                        epg_next.setVisibility(View.VISIBLE);
+                    } else {
+                        epg_next.setVisibility(View.INVISIBLE);
+                    }
+                } else {
+                    epg.setVisibility(View.GONE);
+                    epg_next.setVisibility(View.GONE);
+                }
+
                 UIUtils.loadImageWithCharacterAvatar(context, hostManager,
                         item.thumbnail, item.channel, art, artWidth, artHeight);
-                details.setVisibility(View.VISIBLE);
                 contextMenu.setVisibility(View.VISIBLE);
                 contextMenu.setTag(position);
             }
