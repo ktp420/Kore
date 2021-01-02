@@ -354,11 +354,13 @@ public class HostInfo {
         }
 
         try {
-//            return getHttpURL() + "/image/" + URLEncoder.encode(image, "UTF-8");
+            if (!image.startsWith("image://")) {
+                image = "image://" + URLEncoder.encode(image, "UTF-8") + '/';
+            }
             return auxImageHttpAddress + URLEncoder.encode(image, "UTF-8");
         } catch (UnsupportedEncodingException e) {
             // Ignore for now...
-            return null;
+            return image;
         }
     }
 }

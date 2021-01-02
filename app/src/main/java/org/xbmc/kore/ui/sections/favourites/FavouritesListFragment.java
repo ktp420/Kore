@@ -233,7 +233,7 @@ public class FavouritesListFragment extends AbstractListFragment {
 
             UIUtils.loadImageWithCharacterAvatar(context, hostManager,
                                                  favouriteDetail.thumbnail, favouriteDetail.title,
-                                                 artView, artWidth, artHeight, true);
+                                                 artView, artWidth, artHeight);
             contextMenu.setVisibility(View.VISIBLE);
             contextMenu.setTag(favouriteDetail);
         }
@@ -255,7 +255,7 @@ public class FavouritesListFragment extends AbstractListFragment {
                     return false;
                 }
             });
-	    popupMenu.show();
+	        popupMenu.show();
         }
 
         /**

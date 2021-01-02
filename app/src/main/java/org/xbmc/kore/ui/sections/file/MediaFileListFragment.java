@@ -381,7 +381,8 @@ public class MediaFileListFragment extends AbstractListFragment {
             type = FavouriteType.FavouriteTypeEnum.WINDOW;
             window = "videos";
         }
-        Favourites.AddFavourite action = new Favourites.AddFavourite(f.title, type, f.file, window);
+        Favourites.AddFavourite action = new Favourites.AddFavourite(
+			f.title, type, f.file, window, f.artUrl);
         action.execute(hostManager.getConnection(), new ApiCallback<String>() {
             @Override
             public void onSuccess(String result) {

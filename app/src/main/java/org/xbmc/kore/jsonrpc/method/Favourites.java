@@ -99,6 +99,21 @@ public class Favourites {
             addParameterToRequest("window", window);
         }
 
+        /**
+         * Add a favourite with the given details
+         * @param title Required String
+         * @param type Required String enum in
+         *             {@link org.xbmc.kore.jsonrpc.type.FavouriteType.FavouriteTypeEnum}
+         * @param path Required path for media, script and androidapp favourites types
+         *              or windowparameter for Window type
+         * @param window Required for window favourite type
+         * @param thumbnail optional image url
+         */
+        public AddFavourite(String title, String type, String path, String window, String thumbnail) {
+            this(title, type, path, window);
+            addParameterToRequest("thumbnail", thumbnail);
+        }
+
         @Override
         public String getMethodName() {
             return METHOD_NAME;

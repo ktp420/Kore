@@ -183,39 +183,26 @@ public class UIUtils {
             String imageUrl, String stringAvatar,
             ImageView imageView,
             int imageWidth, int imageHeight) {
-	    loadImageWithCharacterAvatar(context, hostManager,
-			    imageUrl, stringAvatar,
-			    imageView, imageWidth, imageHeight,
-			    false);
-    }
-
-    public static void loadImageWithCharacterAvatar(
-            Context context, HostManager hostManager,
-            String imageUrl, String stringAvatar,
-            ImageView imageView,
-            int imageWidth, int imageHeight,
-            boolean direct) {
         CharacterDrawable avatarDrawable = getCharacterAvatar(context, stringAvatar);
         if (TextUtils.isEmpty(imageUrl)) {
             imageView.setImageDrawable(avatarDrawable);
             return;
         }
 
-        if (!direct) {
-            imageUrl = hostManager.getHostInfo().getImageUrl(imageUrl);
-        }
+        imageUrl = hostManager.getHostInfo().getImageUrl(imageUrl);
         if ((imageWidth) > 0 && (imageHeight > 0)) {
             hostManager.getPicasso()
                        .load(imageUrl)
                        .placeholder(avatarDrawable)
                        .resize(imageWidth, imageHeight)
-                       .centerCrop()
+                       .centerInside()
                        .into(imageView);
         } else {
             hostManager.getPicasso()
                        .load(imageUrl)
-                       .fit()
-                       .centerCrop()
+		       .placeholder(avatarDrawable)
+		       .fit()
+                       .centerInside()
                        .into(imageView);
         }
     }
