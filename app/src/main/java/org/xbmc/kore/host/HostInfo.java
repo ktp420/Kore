@@ -357,6 +357,19 @@ public class HostInfo {
             if (!image.startsWith("image://")) {
                 image = "image://" + URLEncoder.encode(image, "UTF-8") + '/';
             }
+            // workaround kodi bug with image urls for addon resource images
+            // convert full path to special protocal for addons, i.e
+            // /home/user/.kodi/addons to special://home/addons
+	        if (image.length() > 10 && image.startsWith("image://%2")) {
+                char c = image.charAt(10);
+                if (c == 'f' || c == 'F') {
+                    int idx = image.indexOf("odi%2" + c + "addons%2" + c);
+                    if (idx > 10) {
+                        image = "image://special%3A%2" + c + "%2" + c + "home"
+                            + image.substring(idx+3);
+                    }
+                }
+            }
             return auxImageHttpAddress + URLEncoder.encode(image, "UTF-8");
         } catch (UnsupportedEncodingException e) {
             // Ignore for now...
