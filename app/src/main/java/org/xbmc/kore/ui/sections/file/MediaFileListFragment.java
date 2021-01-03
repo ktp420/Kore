@@ -604,7 +604,9 @@ public class MediaFileListFragment extends AbstractListFragment {
                 final int position = (Integer)v.getTag();
                 if (fileLocationItems != null) {
                     final FileLocation loc = fileLocationItems.get(position);
-                    if (loc.has_context_menu()) {
+		    // uncomment since we want to always show at least favourites menu
+		    // at least until the long press selection with action bar is added
+                    // if (loc.has_context_menu()) {
                         final PopupMenu popupMenu = new PopupMenu(getActivity(), v);
                         popupMenu.getMenuInflater().inflate(
                                 R.menu.media_filelist_item_fav, popupMenu.getMenu());
@@ -660,7 +662,7 @@ public class MediaFileListFragment extends AbstractListFragment {
                             }
                         });
                         popupMenu.show();
-                    }
+                    // }
                 }
             }
         };

@@ -564,6 +564,9 @@ public class PVRChannelsListFragment extends AbstractSearchableFragment
                         epg_next_end.setText(time(b.endtime));
                         epg_next.setVisibility(View.VISIBLE);
                     } else {
+                        epg_next_name.setText("");
+                        epg_next_start.setText("");
+                        epg_next_end.setText("");
                         epg_next.setVisibility(View.GONE);
                     }
                 } else {

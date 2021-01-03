@@ -360,13 +360,21 @@ public class HostInfo {
             // workaround kodi bug with image urls for addon resource images
             // convert full path to special protocal for addons, i.e
             // /home/user/.kodi/addons to special://home/addons
-	        if (image.length() > 10 && image.startsWith("image://%2")) {
-                char c = image.charAt(10);
-                if (c == 'f' || c == 'F') {
+            if (image.length() > 10 && image.startsWith("image://")) {
+                if (image.regionMatches(true, 8, "%2f", 0, 3)) {
+                    char c = image.charAt(10);
                     int idx = image.indexOf("odi%2" + c + "addons%2" + c);
                     if (idx > 10) {
                         image = "image://special%3A%2" + c + "%2" + c + "home"
                             + image.substring(idx+3);
+                    }
+                } else if (image.regionMatches(true, 9, "%3a%5a", 0, 6)) {
+                    // looks like windows image://C:\
+                    String enc = "%5" + image.charAt(14);
+                    int idx = image.indexOf("Kodi" + enc + "addons" + enc);
+                    if (idx > 10) {
+                        image = "image://special%3A%2F%2Fhome"
+                            + image.substring(idx+4).replace(enc, "%2F");
                     }
                 }
             }
